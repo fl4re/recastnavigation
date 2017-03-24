@@ -147,7 +147,7 @@ struct dtCrowdAgent
 	float dvel[3];		///< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
 	float nvel[3];		///< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
 	float vel[3];		///< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
-
+	float finalvel[3];     ///< The actual velocity of the agent, correctly update even when the agent travels through and off-mesh connection [(x, y, z)]
 	/// The agent's configuration parameters.
 	dtCrowdAgentParams params;
 
@@ -176,7 +176,7 @@ struct dtCrowdAgentAnimation
 	bool active;
 	float initPos[3], startPos[3], endPos[3];
 	dtPolyRef polyRef;
-	float t, tmax;
+	float t, tinit, tmax;
 };
 
 /// Crowd agent update flags.

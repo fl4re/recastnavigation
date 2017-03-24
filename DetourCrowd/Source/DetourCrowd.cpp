@@ -72,6 +72,8 @@ static void integrate(dtCrowdAgent* ag, const float dt)
 		dtVmad(ag->npos, ag->npos, ag->vel, dt);
 	else
 		dtVset(ag->vel,0,0,0);
+
+	dtVcopy(ag->finalvel, ag->vel);
 }
 
 static bool overOffmeshConnection(const dtCrowdAgent* ag, const float radius)
@@ -549,6 +551,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	dtVset(ag->dvel, 0,0,0);
 	dtVset(ag->nvel, 0,0,0);
 	dtVset(ag->vel, 0,0,0);
+	dtVset(ag->finalvel, 0, 0, 0);
 	dtVcopy(ag->npos, nearest);
 	
 	ag->desiredSpeed = 0;
@@ -1161,7 +1164,8 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				anim->polyRef = refs[1];
 				anim->active = true;
 				anim->t = 0.0f;
-				anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 0.5f;
+				anim->tinit = (dtVdist(anim->initPos, anim->startPos) / ag->params.maxSpeed);
+				anim->tmax = (dtVdist(anim->startPos, anim->endPos) / ag->params.maxSpeed);
 				
 				ag->state = DT_CROWDAGENT_STATE_OFFMESH;
 				ag->ncorners = 0;
@@ -1416,7 +1420,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		dtCrowdAgent* ag = agents[i];
 
 		anim->t += dt;
-		if (anim->t > anim->tmax)
+		if (anim->t > anim->tmax + anim->tinit)
 		{
 			// Reset animation
 			anim->active = false;
@@ -1426,8 +1430,10 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		}
 		
 		// Update position
-		const float ta = anim->tmax*0.15f;
+		const float ta = anim->tinit;
 		const float tb = anim->tmax;
+
+		dtVcopy(ag->finalvel, ag->npos);
 		if (anim->t < ta)
 		{
 			const float u = tween(anim->t, 0.0, ta);
@@ -1435,10 +1441,13 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		}
 		else
 		{
-			const float u = tween(anim->t, ta, tb);
+			const float u = tween(anim->t - ta, 0.0, tb);
 			dtVlerp(ag->npos, anim->startPos, anim->endPos, u);
 		}
-			
+		dtVsub(ag->finalvel, ag->npos, ag->finalvel);
+		float speed = dtVlen(ag->finalvel);
+		dtVnormalize(ag->finalvel);
+		dtVscale(ag->finalvel, ag->finalvel, speed / dt);
 		// Update velocity.
 		dtVset(ag->vel, 0,0,0);
 		dtVset(ag->dvel, 0,0,0);
