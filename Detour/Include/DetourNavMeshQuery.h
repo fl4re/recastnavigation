@@ -436,6 +436,24 @@ public:
 								 float* segmentVerts, dtPolyRef* segmentRefs, int* segmentCount,
 								 const int maxSegments) const;
 
+	/// Returns random location on navmesh within the reach of specified location and inside a shape
+	/// Polygons are chosen weighted by area. The search runs in linear related to number of polygon.
+	/// The location is not exactly constrained by the shape, but it limits the visited polygons.
+	///  @param[in]		startRef		The reference id of the polygon where the search starts.
+	///  @param[in]		frand			Function returning a random number [0..1).
+	///  @param[in]		startPos		The pos from which to start the research
+	///  @param[in]		verts			The vertices describing the convex polygon. (CCW) 
+	///  								[(x, y, z) * @p nverts]
+	///  @param[in]		nverts			The number of vertices in the polygon.
+	///  @param[in]		filter			The polygon filter to apply to the query.
+	///  @param[in]		splitFactor		Number of sub area the polygon will be divided in.
+	///  @param[in]		useOCs			Include offmesh connections in the path.
+	///  @param[out]	randomPt		The random location. [(x, y, z)]
+	///  @param[out]	nRandom		    The number of random point
+	/// @returns The status flags for the query.
+	dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, float(*frand)(), const float* startPos, const float* verts, const int nverts,
+		const dtQueryFilter* filter, const unsigned short splitFactor, bool useOCs, float* randomPts, int & nRandom) const;
+
 	/// Returns random location on navmesh.
 	/// Polygons are chosen weighted by area. The search runs in linear related to number of polygon.
 	///  @param[in]		filter			The polygon filter to apply to the query.

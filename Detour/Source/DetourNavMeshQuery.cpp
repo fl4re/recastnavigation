@@ -218,6 +218,179 @@ dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes)
 	return DT_SUCCESS;
 }
 
+dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, float(*frand)(), const float* startPos, const float* verts, const int nverts,
+	const dtQueryFilter* filter, const unsigned short splitFactor, bool useOCs, float* randomPts, int & nRandom) const
+{
+	dtAssert(m_nav);
+	dtAssert(m_nodePool);
+	dtAssert(m_openList);
+
+	// Validate input
+	if (!startRef || !m_nav->isValidPolyRef(startRef) || splitFactor == 0 || nverts == 0)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	const dtMeshTile* startTile = 0;
+	const dtPoly* startPoly = 0;
+	m_nav->getTileAndPolyByRefUnsafe(startRef, &startTile, &startPoly);
+	if (!filter->passFilter(startRef, startTile, startPoly))
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	m_nodePool->clear();
+	m_openList->clear();
+
+	dtNode* startNode = m_nodePool->getNode(startRef);
+	dtVcopy(startNode->pos, startPos);
+	startNode->pidx = 0;
+	startNode->cost = 0;
+	startNode->total = 0;
+	startNode->id = startRef;
+	startNode->flags = DT_NODE_OPEN;
+	m_openList->push(startNode);
+
+	dtStatus status = DT_SUCCESS;
+	bool startPosInsideShape = dtPointInPolygon(startPos, verts, nverts);
+	float polyCenter[3];
+	float bmin[3];
+	float bmax[3];
+	dtVcopy(bmin, &verts[0]);
+	dtVcopy(bmax, &verts[0]);
+	for (int i = 1; i < nverts; i++)
+	{
+		dtVmin(bmin, &verts[i * 3]);
+		dtVmax(bmax, &verts[i * 3]);
+	}
+	const float sqN = sqrtf((float)splitFactor);
+	const float xExtent = (bmax[0] - bmin[0]);
+	const float zExtent = (bmax[2] - bmin[2]);
+	const int nX = (int)ceilf(xExtent / (xExtent / sqN));
+	const int nZ = (int)ceilf(zExtent / (zExtent / sqN));
+	const float gridZ = zExtent / nZ;
+	const float gridX = xExtent / nX;
+	const int gridSize = nX*nZ;
+	float* grid = new float[gridSize]();
+	int* gridIndexes = new int[gridSize]();
+	nRandom = 0;
+
+	while (!m_openList->empty())
+	{
+		dtNode* bestNode = m_openList->pop();
+		bestNode->flags &= ~DT_NODE_OPEN;
+		bestNode->flags |= DT_NODE_CLOSED;
+
+		// Get poly and tile.
+		// The API input has been cheked already, skip checking internal data.
+		const dtPolyRef bestRef = bestNode->id;
+		const dtMeshTile* bestTile = 0;
+		const dtPoly* bestPoly = 0;
+		m_nav->getTileAndPolyByRefUnsafe(bestRef, &bestTile, &bestPoly);
+
+		if (bestPoly->getType() == DT_POLYTYPE_GROUND && startPosInsideShape)
+		{
+			dtCalcPolyCenter(polyCenter, bestPoly->verts, bestPoly->vertCount, bestTile->verts);
+			int curGridX = dtMax(0, (int)floorf((polyCenter[0] - bmin[0]) / gridX));
+			int curGridZ = dtMax(0, (int)floorf((polyCenter[2] - bmin[2]) / gridZ));
+			int index = curGridX + curGridZ * nX;
+
+			const float u = frand();
+			if (index < gridSize && u > grid[index] && dtPointInPolygon(polyCenter, verts, nverts))
+			{
+				float h = 0.0f;
+				dtStatus stat = getPolyHeight(bestRef, polyCenter, &h);
+				if (!dtStatusFailed(stat))
+				{
+					if (grid[index] <= 0.0f)
+					{
+						gridIndexes[index] = nRandom;
+						nRandom++;
+					}
+
+					grid[index] = u;
+
+					polyCenter[1] = h;
+					dtVcopy(&randomPts[gridIndexes[index] * 3], polyCenter);
+				}
+			}
+		}
+
+		// Get parent poly and tile.
+		dtPolyRef parentRef = 0;
+		const dtMeshTile* parentTile = 0;
+		const dtPoly* parentPoly = 0;
+		if (bestNode->pidx)
+			parentRef = m_nodePool->getNodeAtIdx(bestNode->pidx)->id;
+		if (parentRef)
+			m_nav->getTileAndPolyByRefUnsafe(parentRef, &parentTile, &parentPoly);
+
+		for (unsigned int i = bestPoly->firstLink; i != DT_NULL_LINK; i = bestTile->links[i].next)
+		{
+			const dtLink* link = &bestTile->links[i];
+			dtPolyRef neighbourRef = link->ref;
+			// Skip invalid neighbours and do not follow back to parent.
+			if (!neighbourRef || neighbourRef == parentRef)
+				continue;
+
+			// Expand to neighbour
+			const dtMeshTile* neighbourTile = 0;
+			const dtPoly* neighbourPoly = 0;
+			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
+
+			if (useOCs && neighbourPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+				continue;
+			// Do not advance if the polygon is excluded by the filter.
+			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly))
+				continue;
+
+			// Find edge and calc distance to the edge.
+			float va[3], vb[3];
+			if (!getPortalPoints(bestRef, bestPoly, bestTile, neighbourRef, neighbourPoly, neighbourTile, va, vb))
+				continue;
+
+			if (!startPosInsideShape)
+				startPosInsideShape = dtPointInPolygon(va, verts, nverts);
+			else if (!dtPointInPolygon(va, verts, nverts))
+				continue;
+
+			dtNode* neighbourNode = m_nodePool->getNode(neighbourRef);
+			if (!neighbourNode)
+			{
+				status |= DT_OUT_OF_NODES;
+				continue;
+			}
+
+			if (neighbourNode->flags & DT_NODE_CLOSED)
+				continue;
+
+			// Cost
+			if (neighbourNode->flags == 0)
+				dtVlerp(neighbourNode->pos, va, vb, 0.5f);
+
+			const float total = bestNode->total + dtVdist(bestNode->pos, neighbourNode->pos);
+
+			// The node is already in open list and the new result is worse, skip.
+			if ((neighbourNode->flags & DT_NODE_OPEN) && total >= neighbourNode->total)
+				continue;
+
+			neighbourNode->id = neighbourRef;
+			neighbourNode->flags = (neighbourNode->flags & ~DT_NODE_CLOSED);
+			neighbourNode->pidx = m_nodePool->getNodeIdx(bestNode);
+			neighbourNode->total = total;
+
+			if (neighbourNode->flags & DT_NODE_OPEN)
+			{
+				m_openList->modify(neighbourNode);
+			}
+			else
+			{
+				neighbourNode->flags = DT_NODE_OPEN;
+				m_openList->push(neighbourNode);
+			}
+		}
+	}
+	delete[] gridIndexes;
+	delete[] grid;
+	return DT_SUCCESS;
+}
+
 dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*frand)(),
 										 dtPolyRef* randomRef, float* randomPt) const
 {
