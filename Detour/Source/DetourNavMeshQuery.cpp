@@ -218,7 +218,7 @@ dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes)
 	return DT_SUCCESS;
 }
 
-dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, float(*frand)(), const float* startPos, const float* verts, const int nverts,
+dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, const float* startPos, const float* verts, const int nverts,
 	const dtQueryFilter* filter, const unsigned short splitFactor, bool useOCs, float* randomPts, int & nRandom) const
 {
 	dtAssert(m_nav);
@@ -291,7 +291,7 @@ dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, float(*frand)(), 
 			int curGridZ = dtMax(0, (int)floorf((polyCenter[2] - bmin[2]) / gridZ));
 			int index = curGridX + curGridZ * nX;
 
-			const float u = frand();
+			const float u = (float)rand() / (float)RAND_MAX;
 			if (index < gridSize && u > grid[index] && dtPointInPolygon(polyCenter, verts, nverts))
 			{
 				float h = 0.0f;
@@ -334,7 +334,7 @@ dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, float(*frand)(), 
 			const dtPoly* neighbourPoly = 0;
 			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
 
-			if (useOCs && neighbourPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+			if (!useOCs && neighbourPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
 				continue;
 			// Do not advance if the polygon is excluded by the filter.
 			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly))

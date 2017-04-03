@@ -451,7 +451,7 @@ public:
 	///  @param[out]	randomPt		The random location. [(x, y, z)]
 	///  @param[out]	nRandom		    The number of random point
 	/// @returns The status flags for the query.
-	dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, float(*frand)(), const float* startPos, const float* verts, const int nverts,
+	dtStatus dtNavMeshQuery::findPointsInShape(dtPolyRef startRef, const float* startPos, const float* verts, const int nverts,
 		const dtQueryFilter* filter, const unsigned short splitFactor, bool useOCs, float* randomPts, int & nRandom) const;
 
 	/// Returns random location on navmesh.
