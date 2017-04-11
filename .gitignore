@@ -43,3 +43,8 @@ RecastDemo/Contrib/SDL/*
 
 ## Generated doc files
 Docs/html
+
+/binary_distrib
+/npm-debug.log
+/node_modules
+

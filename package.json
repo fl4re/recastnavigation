@@ -1,0 +1,21 @@
+{
+  "name": "@sb/recast",
+  "version": "0.1.0",
+  "description": "Fl4re Recast Navigation",
+  "private": false,
+  "binary": {
+    "file": "{package_name}/{package_version}/recast-{package_version}-{platform}-{arch}.tar.gz",
+    "host": "https://registry-node.starbreeze.com/-/releases",
+    "os": [
+      "win32",
+      "darwin"
+    ],
+    "path": [
+      "binary_distrib",
+      "binary_distrib/**"
+    ]
+  },
+  "scripts": {
+    "install": "prades install"
+  }
+}
