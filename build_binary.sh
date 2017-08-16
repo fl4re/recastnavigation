@@ -26,4 +26,4 @@ cmake -E copy_directory $ROOT_DIR/DetourCrowd/Include $INSTALL_DIR/include
 cmake -E copy_directory $ROOT_DIR/DetourTileCache/Include $INSTALL_DIR/include
 cmake -E copy_directory $ROOT_DIR/DebugUtils/Include $INSTALL_DIR/include
 
-exit 1
+exit 0
