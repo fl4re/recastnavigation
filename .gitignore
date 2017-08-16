@@ -43,3 +43,10 @@ RecastDemo/Contrib/SDL/*
 
 ## Generated doc files
 Docs/html
+
+/binary_distrib
+/npm-debug.log
+/node_modules
+
+/build_XCode
+/build_Visual Studio 14 2015 Win64
