@@ -68,20 +68,20 @@ include_directories(${CMAKE_SOURCE_DIR}/DebugUtils/Include)
 include_directories(${CMAKE_SOURCE_DIR}/DetourTileCache/Include)
 
 SETUP_COMPILER()
-ADD_LIBRARY(itsRecast SHARED ${recast_sources})
+ADD_LIBRARY(itsRecast STATIC ${recast_sources})
 SETUP_CPP11(itsRecast)
 
 if(APPLE)
-  set(dll_dir mac)
+  set(lib_dir mac)
 elseif(UNIX)
-  set(dll_dir linux)
+  set(lib_dir linux)
 else()
-  set(dll_dir win)
+  set(lib_dir win)
 endif()
 
 install(TARGETS itsRecast
-  LIBRARY       DESTINATION ${dll_dir}
-  ARCHIVE       DESTINATION ${dll_dir}
-  RUNTIME       DESTINATION ${dll_dir}
+  LIBRARY       DESTINATION ${lib_dir}
+  ARCHIVE       DESTINATION ${lib_dir}
+  RUNTIME       DESTINATION ${lib_dir}
   PUBLIC_HEADER DESTINATION include
 )
