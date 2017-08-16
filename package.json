@@ -17,5 +17,8 @@
   },
   "scripts": {
     "install": "prades install"
+  },
+  "dependencies": {
+    "@sb/prades": "^0.4.1"
   }
 }
