@@ -1,10 +1,13 @@
+#!/bin/bash -xe
+
 # make sure we are inside a valid git dir
 git rev-parse --is-inside-work-tree
 
 # important: it is utmost important that both FL4RE_PUBLISH_BRANCH@HEAD and git tag of the new patched version
 # are atomically commited.  We ensure this by checking out the branch and managing the changes ourselves (instead)
 # of through 'npm version patch'.  If we could be guaranteed that 'npm publish' can return without failure, we can
-# reduce this script to 2 lines of code i.e. version patch & npm publish.  But we make no such assumption.
+# reduce this script to 2 lines of code i.e. version patch & npm publish.  But we make no such assumption.  This 
+# is similar to how we do StarVR SDK.  
 # The most important thing is nothing is commited to master while a publish is in progress
 
 # since jenkins git plugin checks out to a headless branch, we need to indeed checkout to a named branch, master
@@ -17,9 +20,6 @@ git merge origin/$FL4RE_PUBLISH_BRANCH
 
 # npm version patch w/o git actions and obtain the new patch version that appears in the changed package.json file
 FL4RE_TAGGED_VERSION=$(npm --no-git-tag-version version patch)
-
-# fianlly npm publish the new version 
-npm publish
 
 # all good, so now commit back the package.json and create a tag for this version
 git add package.json
@@ -36,5 +36,7 @@ git push --atomic origin refs/heads/$FL4RE_PUBLISH_BRANCH refs/tags/$FL4RE_TAGGE
 git config --global --remove-section credential
 rm $WORKSPACE/gh.credentials
 
-exit 0
+# finally npm publish the new version
+npm publish
 
+exit 0

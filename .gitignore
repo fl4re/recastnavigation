@@ -48,3 +48,4 @@ Docs/html
 /npm-debug.log
 /node_modules
 
+/build_XCode
