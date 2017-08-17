@@ -1,6 +1,6 @@
 {
   "name": "@sb/recast",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Fl4re Recast Navigation",
   "private": false,
   "binary": {
