@@ -76,7 +76,9 @@ if(APPLE)
 elseif(UNIX)
   set(lib_dir linux)
 else()
-  set(lib_dir win)
+  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /D_ITERATOR_DEBUG_LEVEL=1")
+  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /D_ITERATOR_DEBUG_LEVEL=0")
+  set(lib_dir win_$<CONFIG>)
 endif()
 
 install(TARGETS itsRecast
