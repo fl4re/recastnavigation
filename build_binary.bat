@@ -24,6 +24,7 @@ cmake -E chdir "%BUILD_DIR%" cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX
 if !errorlevel! neq 0 exit /b !errorlevel!
 
 echo "Installing Recast in %INSTALL_DIR%"
+cmake --build "%BUILD_DIR%" --config Debug --target install -- "/m"
 cmake --build "%BUILD_DIR%" --config Release --target install -- "/m"
 if !errorlevel! neq 0 exit /b !errorlevel!
 
